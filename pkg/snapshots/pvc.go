@@ -80,7 +80,18 @@ func createPVC(sg *snapshotgroup.SnapshotGroup, spec corev1.PersistentVolumeClai
 
 func restorePVC(sg *snapshotgroup.SnapshotGroup) error {
 	klog.Infof("%s/%s: restoring PVC", sg.ObjectMeta.Namespace, sg.ObjectMeta.Name)
-	err := deletePVC(sg)
+
+	pvc, err := maybeCreatePVC(sg)
+	if err != nil {
+		return err
+	}
+	sg.Spec.Claim.Spec = pvc.Spec
+	err = updateSnapshotGroup(sg)
+	if err != nil {
+		return err
+	}
+
+	err = deletePVC(sg)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
